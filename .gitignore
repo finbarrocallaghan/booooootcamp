@@ -1,0 +1,6 @@
+*.json
+*.gz
+*.un~
+*.csv
+*.pyc
+*.html
