@@ -1,15 +1,14 @@
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import numpy as np
-#!/usr/bin/env python
 import networkx as nx
 import subprocess as sp
 from text_analysis import *
 from cStringIO import StringIO
 import json
 
-figsize(16,10)
 filename = '20120807150601.json.gz'
+
 unzipped_dirty = sp.check_output( [ 'zcat', filename ])
 
 json_data = StringIO(unzipped_dirty.replace(']\n\n[',','))
@@ -36,7 +35,6 @@ m.scatter(
     y,
     c='red', #color
     marker='o',
-    size=4,
     alpha=0.75, #transparency
     zorder = 2, #plotting order
     )
