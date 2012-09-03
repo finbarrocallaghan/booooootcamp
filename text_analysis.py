@@ -63,14 +63,14 @@ def rescale_arr(arr,amin,amax):
     >>> rescale_arr(a,3,6)
     array([ 3.  ,  3.75,  4.5 ,  5.25,  6.  ])
     """
-    
+
     # old bounds
     m = arr.min()
     M = arr.max()
     # scale/offset
     s = float(amax-amin)/(M-m)
     d = amin - s*m
-    
+
     # Apply clip before returning to cut off possible overflows outside the
     # intended range due to roundoff error, so that we can absolutely guarantee
     # that on output, there are no values > amax or < amin.
@@ -96,9 +96,23 @@ def text_cleanup(text, min_length=3,
 
     Returns a list of strings.
     """
-    return [w for w in text.lower().split()
+    return [w.replace('.', '') for w in text.lower().split()
             if len(w)>=min_length and w not in remove]
-    
+
+
+def lines_cleanup(lines, min_length=3,
+                  remove = set(['for', 'the', 'and', 'with'])):
+    """Clean up a list of lowercase strings of text for simple analysis.
+
+    Splits on whitespace, removes all 'words' less than `min_length` characters
+    long, and those in the `remove` set.
+
+    Returns a list of strings.
+    """
+    return [ ' '.join([w.replace('.', '') for w in line.lower().split()
+              if len(w)>=min_length and w not in remove])
+              for line in lines ]
+
 
 def print_vk(lst):
     """Print a list of value/key pairs nicely formatted in key/value order."""
@@ -120,7 +134,7 @@ def word_freq(text):
 
     freqs = {}
     for word in text:
-        freqs[word] = freqs.get(word, 0) + 1        
+        freqs[word] = freqs.get(word, 0) + 1
     return freqs
 
 
@@ -131,7 +145,7 @@ def sort_freqs(freqs):
     ----------
     freqs : dict
       A dict with string keys and integer values.
-    
+
     Return
     ------
     items : list
@@ -155,7 +169,7 @@ def summarize_freq_hist(freqs, n=10):
     freqs : dict or list
       Word frequencies, represented either as a dict of word->count, or as a
       list of count->word pairs.
-    
+
     n : int
       The number of least/most frequent words to print.
     """
@@ -199,7 +213,7 @@ def get_text_from_url(url):
 
 def co_occurrences(lines, words):
     """Return histogram of co-occurrences of words in a list of lines.
-    
+
     Parameters
     ----------
     lines : list
@@ -210,7 +224,7 @@ def co_occurrences(lines, words):
       searched for co-occurrences.
     """
     wpairs = all_pairs(words)
-    
+
     # Now build histogram of co-occurrences
     co_occur = {}
     for w1, w2 in wpairs:
@@ -235,7 +249,7 @@ def co_occurrences_graph(word_hist, co_occur, cutoff=0):
     return g
 
 
-def plot_graph(wgraph, pos=None):
+def plot_graph(wgraph, pos=None, fig=None):
     """Conveniently summarize graph visually"""
     # Plot nodes with size according to count
     sizes = []
@@ -244,7 +258,7 @@ def plot_graph(wgraph, pos=None):
         sizes.append(d['count'])
         degrees.append(wgraph.degree(n))
     sizes = rescale_arr(np.array(sizes, dtype=float), 100, 1000)
-        
+
     # Compute layout and label edges according to weight
     pos = nx.spring_layout(wgraph) if pos is None else pos
     labels = {}
@@ -254,20 +268,26 @@ def plot_graph(wgraph, pos=None):
         labels[n1, n2] = w
         width.append(w)
 
-    # remap width to 1-10 range
-    width = rescale_arr(np.array(width, dtype=float), 1, 15)
-        
+    # remap width to 1-wmax
+    wmax = 20
+    width = rescale_arr(np.array(width, dtype=float), 1, wmax)
+
     # Create figure
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    if fig is None:
+        fig, ax = plt.subplots()
+    else:
+        ax = fig.add_subplot(111)
     fig.subplots_adjust(0,0,1)
     nx.draw_networkx_nodes(wgraph, pos, node_size=sizes, node_color=degrees,
-                           alpha=0.8)
-    nx.draw_networkx_labels(wgraph, pos, font_size=15, font_weight='bold')
+                           alpha=0.4)
+    nx.draw_networkx_labels(wgraph, pos, font_size=24, font_weight='bold')
     nx.draw_networkx_edges(wgraph, pos, width=width, edge_color=width,
                            edge_cmap=plt.cm.Blues)
-    nx.draw_networkx_edge_labels(wgraph, pos, edge_labels=labels)
-    ax.set_title('Node color:degree, size:count, edge: co-occurrence count')
+    nx.draw_networkx_edge_labels(wgraph, pos, edge_labels=labels, font_size=18)
+    ax.set_title('Node color:degree, size:count, edge: co-occurrence count',
+                 fontsize=18)
+    ax.set_xticks([])
+    ax.set_yticks([])
 
 
 def plot_word_histogram(freqs, show=10, title=None):
@@ -283,7 +303,7 @@ def plot_word_histogram(freqs, show=10, title=None):
         # interpret as a fraction
         start = -int(round(show*len(freqs)))
         show_f = sorted_f[start:]
-        
+
     # Now, extract words and counts, plot
     n_words = len(show_f)
     ind = np.arange(n_words)
@@ -319,58 +339,3 @@ def summarize_centrality(centrality):
     print '\nGraph centrality'
     for node, cent in c:
         print "%15s: %.3g" % (node, cent)
-
-#-----------------------------------------------------------------------------
-# Main script
-#-----------------------------------------------------------------------------
-
-# if __name__ == '__main__':
-
-    # # Configure user variables here
-    #  # Specify the url (can be a local file path) of the text file to analyze.
-    #  # If not given, it's read from the command line as the first argument
-    # 
-    #  # 11226 titles of recent articles in arxiv/math/prob
-    #  default_url  = "http://bibserver.berkeley.edu/tmp/titles.txt"
-    #  # Number of words to display in detailed histogram
-    #  n_words = 15
-    #  # Number of words to use as nodes for co-occurrence graph.
-    #  n_nodes = 15
-    # 
-    #  # End of user configuration
-    # 
-    #  # Actual code starts here
-    #  try:
-    #      url = sys.argv[1]
-    #  except IndexError:
-    #      url  = default_url
-    # 
-    #  # Fetch text and do basic preprocessing
-    #  text = get_text_from_url(url).lower()
-    #  lines = text.splitlines()
-    #  words = text_cleanup(text)
-    # 
-    #  # Compute frequency histogram
-    #  wf = word_freq(words)
-    #  sorted_wf = sort_freqs(wf)
-    # 
-    #  # Build a graph from the n_nodes most frequent words
-    #  popular = sorted_wf[-n_nodes:]
-    #  pop_words = [wc[0] for wc in popular]
-    #  co_occur = co_occurrences(lines, pop_words)
-    #  wgraph = co_occurrences_graph(popular, co_occur, cutoff=1)
-    #  centrality = nx.eigenvector_centrality_numpy(wgraph)
-    # 
-    #  # Print summaries of single-word frequencies and graph structure
-    #  summarize_freq_hist(sorted_wf)
-    #  summarize_centrality(centrality)
-    # 
-    #  # Plot histogram and graph
-    #  plt.close('all')
-    #  plot_word_histogram(sorted_wf, n_words,
-    #                      "Frequencies for %s most frequent words" % n_words)
-    #  plot_word_histogram(sorted_wf, 1.0, "Frequencies for entire word list")
-    #  plot_graph(wgraph)
-    #      
-    #  # Display figures
-    #  plt.show()
