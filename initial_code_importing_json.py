@@ -17,11 +17,13 @@ json_data = StringIO(unzipped_dirty.replace(']\n\n[',','))
 tweets = json.load(json_data) 
 
 
-remove = 'this that your with have watch olympics #olympics should'
+remove = ( 'this that your with have watch #olympics should'
+           'being olympics olympic' )
+
 remove = set(remove.split())
 
-lines = [ t['text'].encode('utf-8') for t in tweets ]
-#lines = [ t['text'] for t in tweets ]
+#lines = [ t['text'].encode('utf-8') for t in tweets ]
+lines = [ t['text'] for t in tweets ]
 
 clean_lines = lines_cleanup( lines, 4, remove)
 words = '\n'.join(clean_lines).split()
@@ -43,3 +45,5 @@ wgraph = nx.connected_component_subgraphs(wgraph)[0]
 centrality = nx.eigenvector_centrality_numpy(wgraph)
 summarize_freq_hist(wf)
 summarize_centrality(centrality)
+
+
