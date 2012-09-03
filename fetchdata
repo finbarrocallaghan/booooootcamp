@@ -1,2 +1,1 @@
 for f in `head -n 105 manifest`; do wget "https://s3-eu-west-1.amazonaws.com/software-carpentry/full/$f"; done
-
